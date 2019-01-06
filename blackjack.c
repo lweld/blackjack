@@ -11,41 +11,44 @@
 #define HAND 9
 
 typedef enum { false, true } bool;
+enum suit { HEARTS, SPADES, DIAMONDS, CLUBS };
 enum rank { TWO = 2, THREE = 3, FOUR = 4, FIVE = 5, SIX = 6, SEVEN = 7, EIGHT = 8, NINE = 9, TEN, JOKER, QUEEN, KING, ACE };
+typedef struct cardName { int suit; int rank; } card;
 
-void hit(int deckVal, int * userCards, int * playerTotal, char * isBust, int * hasAce, int i);
-void doubleDown(int deckVal, int * userCards, int * playerTotal, char * isBust, int * hasAce, int i, float * bet);
-int split(int * deck, int * userCards, int * playerTotal, char * isFirstHandBust, int * hasAce, int val, int i, float * bet);
-void splitHit(int * deck, int * firstHand, int * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i);
-void splitDoubleDown(int * deck, int * firstHand, int * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i, float * bet);
-void splitAces(int * deck, int * firstHand, int * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i);
-void createDeck(int * deck);
-void shuffleDeck(int * deck);
-void swap(int * i, int * random);
+void hit(card deckVal, card * userCards, int * playerTotal, char * isBust, int * hasAce, int i);
+void doubleDown(card deckVal, card * userCards, int * playerTotal, char * isBust, int * hasAce, int i, float * bet);
+int split(card * deck, card * userCards, int * playerTotal, char * isFirstHandBust, int * hasAce, int val, int i, float * bet);
+void splitHit(card * deck, card * firstHand, card * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i);
+void splitDoubleDown(card * deck, card * firstHand, card * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i, float * bet);
+void splitAces(card * deck, card * firstHand, card * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i);
+card * createDeck(card * deck);
+void shuffleDeck(card * deck);
+void swap(card * i, card * random);
 void getFloatInput(float * bet, float bank);
 void getAlphaInput(char * alphaInput);
 void getAlphanumericInput(char * alnumInput);
-int getScore(int * userCards, int i, int playerTotal, int * hasAce);
-void getIndividualCardValues(int * userCards, int * hasAce, int i, int * playerTotal);
-void printUserCards(int * userCards, int i);
-const char * enumToString(int cardVal);
+int getScore(card * userCards, int i, int playerTotal, int * hasAce);
+void getIndividualCardValues(card * userCards, int * hasAce, int i, int * playerTotal);
+void printUserCards(card * userCards, int i);
+const char * rankEnumToString(int cardVal);
+const char * suitEnumToString(int cardVal);
 char checkIfBust(int total);
-char checkIfBlackjack(int * userCards);
-void alterIfBlackjack(int * userCards, int * dealerCards, char userBlackjack, char dealerBlackjack, bool * takeInsurance, float insurance, float * bank, float bet);
-void askForInsurance(float * insurance, int bet, bool * takeInsurance, int * dealerCards);
+char checkIfBlackjack(card * userCards);
+void alterIfBlackjack(card * userCards, card * dealerCards, char userBlackjack, char dealerBlackjack, bool * takeInsurance, float insurance, float * bank, float bet);
+void askForInsurance(float * insurance, int bet, bool * takeInsurance, card * dealerCards);
 void getMaxSplitTotal(int * firstHandTotal, int secondHandTotal);
-void setToZero(int * userCards, int * dealerCards);
+void setToZero(card * userCards, card * dealerCards);
 void insolvent(float bank);
 void printScore(int playerScore, int dealerScore);
 
 int main() {
+	card *deck, userCards[HAND] = {{0}}, dealerCards[HAND] = {{0}}; // Allocates userCards and dealerCards on the stack (since the memory they occupy is small) and initializes the members of each element to zero.
 	char userStrat = 'n', isBust = 'n', surrender = 'n', dealerDrew = 'n', userBlackjack, dealerBlackjack, playAgain;
-	// Allocating userCards and dealerCards on the stack (since the memory occupied is small) and initializing all elements to zero.
-	int *deck, userCards[HAND] = {0}, dealerCards[HAND] = {0}, i = 0, k = 0, val = 0, playerTotal = 0, dealerTotal = 0, userHasAce = 0, dealerHasAce = 0, counter = 0;
+	int i = 0, k = 0, val = 0, playerTotal = 0, dealerTotal = 0, userHasAce = 0, dealerHasAce = 0, counter = 0;
 	float bank = 100.0f, bet, insurance = 0.0f;
-	deck = (int *) calloc(52, sizeof(int)); // Used calloc instead of malloc to make error checking easier when creating the deck since all values are set to zero.
+	deck = (card *) calloc(52, sizeof(card)); // Used calloc instead of malloc to make error checking easier when creating the deck since all values are set to zero.
 	if (deck == NULL) { printf("ERROR: re-start game.\n"); exit(CLEANEXIT); }
-	createDeck(deck);
+	deck = createDeck(deck);
 	shuffleDeck(deck);
 	printf("\nWelcome to the fantastic game of Blackjack!\nYou begin with $100, must make a minimum bet of $2, and cannot bet more than 20%% of your available funds.\n\n");
 	do {
@@ -54,12 +57,12 @@ int main() {
 
 		for (i = 0, k = 0; i < 2; i++, k++) { userCards[i] = deck[val++]; dealerCards[k] = deck[val++]; } // Sets the first two cards for both user and dealer.
 
-		bool canSurrender = dealerCards[1] == ACE || dealerCards[1] == TEN || dealerCards[1] == JOKER || dealerCards[1] == QUEEN || dealerCards[1] == KING;
-		bool canSplit = userCards[0] == userCards[1];
-		bool takeInsurance = dealerCards[1] == ACE;
+		bool canSurrender = dealerCards[1].rank == ACE || dealerCards[1].rank == TEN || dealerCards[1].rank == JOKER || dealerCards[1].rank == QUEEN || dealerCards[1].rank == KING;
+		bool canSplit = userCards[0].rank == userCards[1].rank;
+		bool takeInsurance = dealerCards[1].rank == ACE;
 
 		printUserCards(userCards, i);
-		printf("The dealer's second card is: %s\n", enumToString(dealerCards[1]));
+		printf("The dealer's second card is: %s of %s\n", rankEnumToString(dealerCards[1].rank), suitEnumToString(dealerCards[1].suit));
 		userBlackjack = checkIfBlackjack(userCards); dealerBlackjack = checkIfBlackjack(dealerCards); // Check if either user to dealer got a Blackjack.
 		alterIfBlackjack(userCards, dealerCards, userBlackjack, dealerBlackjack, &takeInsurance, insurance, &bank, bet);
 		while (userStrat != 's' && isBust == 'n' && surrender == 'n' && userBlackjack != 'b' && dealerBlackjack != 'b') {
@@ -81,7 +84,7 @@ int main() {
 			else if (userStrat == 'd' && i == 2) { // Double Down
 				doubleDown(deck[val++], userCards, &playerTotal, &isBust, &userHasAce, i++, &bet);
 				userStrat = 's'; // The user must stop playing after doubling down.
-			} else if (userStrat == 'p' && i == 2 && userCards[0] == userCards[1]) { // Split
+			} else if (userStrat == 'p' && i == 2 && userCards[0].rank == userCards[1].rank) { // Split
 				val = split(deck, userCards, &playerTotal, &isBust, &userHasAce, val, i++, &bet); // Returning deck is easier than passing deck by reference, which would require that split accept a pointer to a pointer.
 				userStrat = 's'; // All playing decisions are made in split, so we must ensure the while loop terminates.
 			} else if (userStrat == 'u' && i == 2) { // Surrender
@@ -132,7 +135,7 @@ int main() {
 }
 
 /* Gives the user another card from the deck. */
-void hit(int deckVal, int * userCards, int * playerTotal, char * isBust, int * hasAce, int i) {
+void hit(card deckVal, card * userCards, int * playerTotal, char * isBust, int * hasAce, int i) {
 	userCards[i++] = deckVal; // The value added to userCards points back to the main function, so we don't need to return it.
 	printUserCards(userCards, i);
 	*playerTotal = getScore(userCards, i, *playerTotal, hasAce);
@@ -140,17 +143,18 @@ void hit(int deckVal, int * userCards, int * playerTotal, char * isBust, int * h
 }
 
 /* Gives the user another card from the deck while doubling their bet. */
-void doubleDown(int deckVal, int * userCards, int * playerTotal, char * isBust, int * hasAce, int i, float * bet) {
+void doubleDown(card deckVal, card * userCards, int * playerTotal, char * isBust, int * hasAce, int i, float * bet) {
 	*bet = *bet + *bet;
 	hit(deckVal, userCards, playerTotal, isBust, hasAce, i++);
 }
 
 /* If a user has two cards, each card is made into a separate hand and each of these separate hands recieve
    an additional card. Afterwards, the user is given an option to hit, double down or stand on these two hands. */
-int split(int * deck, int * firstHand, int * firstHandTotal, char * isFirstHandBust, int * firstHasAce, int val, int i, float * bet) {
+int split(card * deck, card * firstHand, int * firstHandTotal, char * isFirstHandBust, int * firstHasAce, int val, int i, float * bet) {
+	card *secondHand;
 	char isSecondHandBust, userStrat = '\0';
-	int *secondHand, secondHandTotal = 0, secondHasAce = 0;
-	secondHand = (int *) calloc(11, sizeof(int));
+	int secondHandTotal = 0, secondHasAce = 0;
+	secondHand = (card *) calloc(11, sizeof(card));
 	*bet = *bet + *bet; // When splitting their hand the user must double their bet.
 	secondHand[0] = firstHand[1];
 	firstHand[1] = deck[val++];
@@ -159,7 +163,7 @@ int split(int * deck, int * firstHand, int * firstHandTotal, char * isFirstHandB
 	printf("Second split hand. "); printUserCards(secondHand, i);
 	*firstHandTotal = getScore(firstHand, i, *firstHandTotal, firstHasAce);
 	secondHandTotal = getScore(secondHand, i, secondHandTotal, &secondHasAce);
-	if (firstHand[0] == ACE && secondHand[0] == ACE) { // Splitting Aces
+	if (firstHand[0].rank == ACE && secondHand[0].rank == ACE) { // Splitting Aces
 		splitAces(deck, firstHand, secondHand, firstHandTotal, &secondHandTotal, isFirstHandBust, &isSecondHandBust, firstHasAce, &secondHasAce, val++, i++);
 		++val; userStrat = 's';
 	}
@@ -184,7 +188,7 @@ int split(int * deck, int * firstHand, int * firstHandTotal, char * isFirstHandB
 
 /* Gives the user an additional card on both hands that resulted from them splitting their initial two cards.
    Called in either the function, split or splitAces, when a user decides to hit. */
-void splitHit(int * deck, int * firstHand, int * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i) {
+void splitHit(card * deck, card * firstHand, card * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i) {
 	printf("First split hand. ");
 	hit(deck[val++], firstHand, firstHandTotal, isFirstHandBust, firstHasAce, i++);
 	--i;
@@ -197,7 +201,7 @@ void splitHit(int * deck, int * firstHand, int * secondHand, int * firstHandTota
 
 /* Gives the user an additional card on both hands that resulted from them splitting their initial two cards, while doubling their bet.
    Called in the function, split, when a user decides to double down. */
-void splitDoubleDown(int * deck, int * firstHand, int * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i, float * bet) {
+void splitDoubleDown(card * deck, card * firstHand, card * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i, float * bet) {
 	float tempBet = 0.0f; // Creating a dummy bet to fulfill the argument requirements of doubleDown.
 	*bet = *bet + *bet; // Doubling the user's already doubled bet.
 	printf("First split hand. ");
@@ -209,7 +213,7 @@ void splitDoubleDown(int * deck, int * firstHand, int * secondHand, int * firstH
 
 /* Gives the user the option of recieving an additional card on both hands that resulted from them splitting their initial two cards.
    Called in the function, split, when the user's initial two cards are Aces. */
-void splitAces(int * deck, int * firstHand, int * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i) {
+void splitAces(card * deck, card * firstHand, card * secondHand, int * firstHandTotal, int * secondHandTotal, char * isFirstHandBust, char * isSecondHandBust, int * firstHasAce, int * secondHasAce, int val, int i) {
 	char userInput;
 	printf("Since you've split Aces you can only hit once.\nWould you like to hit once on each hand? Enter 'y' for yes, or any letter for no: ");
 	getAlphaInput(&userInput);
@@ -218,14 +222,18 @@ void splitAces(int * deck, int * firstHand, int * secondHand, int * firstHandTot
 }
 
 /* Creates a standard 52 card deck. */
-void createDeck(int * deck) {
-	for (int suit = 0; suit < 4; suit++)
-		for (int rank = TWO; rank <= ACE; rank++) // Iterate through the enums.
-			*deck++ = rank;
+card * createDeck(card * deck) {
+	int i = 0;
+	for (int suit = HEARTS; suit <= CLUBS; suit++) // Iterate through the enums.
+		for (int rank = TWO; rank <= ACE; rank++) {
+			deck[i].suit = suit;
+			deck[i++].rank = rank;
+		}
+	return deck;
 }
 
 /* Shuffles a standard 52 card deck. */
-void shuffleDeck(int * deck) {
+void shuffleDeck(card * deck) {
 	int random;
 	srand(time(0)); // Seeds the random number generator with current time to generate a random sequence with each run.
 	for (int i = 0; i < 52; i++) {
@@ -235,8 +243,8 @@ void shuffleDeck(int * deck) {
 }
 
 /* Swaps the contents of two characters. */
-void swap(int * i, int * random) {
-	int temp = *i;
+void swap(card * i, card * random) {
+	card temp = *i;
 	*i = *random;
 	*random = temp;
 }
@@ -279,14 +287,13 @@ void getAlphanumericInput(char * alnumInput) {
 }
 
 /* Returns the total score for the given card hand. */
-int getScore(int * userCards, int i, int totalScore, int * hasAce) {
+int getScore(card * userCards, int i, int totalScore, int * hasAce) {
 	if (totalScore == 0)
 		for (int k = 0; k < i; k++)
 			getIndividualCardValues(userCards, hasAce, k, &totalScore);
 	else
 		getIndividualCardValues(userCards, hasAce, --i, &totalScore); // Decrementing `i` since it is incremented in main, which would give wrong index position by +1.
 	if (totalScore > 21 && *hasAce > 0) { // Converts Ace value of 11 to 1 when convenient for the user.
-		printf("hasAce %d\n", *hasAce);
 		*hasAce = *hasAce - 1;
 		totalScore = totalScore - 10;
 	}
@@ -294,34 +301,36 @@ int getScore(int * userCards, int i, int totalScore, int * hasAce) {
 }
 
 /* Gets the value of a single card. */
-void getIndividualCardValues(int * userCards, int * hasAce, int k, int * totalScore) {
-	if (userCards[k] == TEN || userCards[k] == JOKER || userCards[k] == QUEEN || userCards[k] == KING)
+void getIndividualCardValues(card * userCards, int * hasAce, int k, int * totalScore) {
+	if (userCards[k].rank == TEN || userCards[k].rank == JOKER || userCards[k].rank == QUEEN || userCards[k].rank == KING)
 		*totalScore = *totalScore + 10;
-	else if (userCards[k] == ACE) {
+	else if (userCards[k].rank == ACE) {
 		*hasAce = *hasAce + 1;
 		*totalScore = *totalScore + 11;
 	}
 	else
-		*totalScore = *totalScore + userCards[k];
+		*totalScore = *totalScore + userCards[k].rank;
 }
 
 /* Prints the contents of a card hand. */
-void printUserCards(int * userCards, int i) {
+void printUserCards(card * userCards, int i) {
+	const char *rankName, *suitName;
 	printf("Your cards are: ");
 	for (int j = 0; j < i; j++) {
-		const char * name = enumToString(userCards[j]);
+		rankName = rankEnumToString(userCards[j].rank);
+		suitName = suitEnumToString(userCards[j].suit);
 		if (i - j == 1)
-			printf("and %s\n", name);
+			printf("and %s of %s\n", rankName, suitName);
 		else if (i - j == 2)
-			printf("%s ", name);
+			printf("%s of %s ", rankName, suitName);
 		else
-			printf("%s, ", name);
+			printf("%s of %s, ", rankName, suitName);
 	}
 }
 
-/* Returns a constant string representation of a card value.
+/* Returns a constant string representation of the rank of a card.
    Called in the function, printUserCards. */
-const char * enumToString(int cardIdentifier) {
+const char * rankEnumToString(int cardIdentifier) {
 	switch(cardIdentifier) {
 		case 2: return "two";
 		case 3: return "three";
@@ -340,6 +349,18 @@ const char * enumToString(int cardIdentifier) {
 	return "ERROR: incorrect card value.";
 }
 
+/* Returns a constant string representation of the suit of a card.
+   Called in the function, printUserCards. */
+const char * suitEnumToString(int cardIdentifier) {
+	switch(cardIdentifier) {
+		case 0: return "Hearts";
+		case 1: return "Spades";
+		case 2: return "Diamonds";
+		case 3: return "Clubs";
+	}
+	return "ERROR: incorrect card value.";
+}
+
 /* Checks if a player went bust. */
 char checkIfBust(int total) {
 	if (total > 21)
@@ -351,16 +372,16 @@ char checkIfBust(int total) {
 }
 
 /* Checks if a player recieved a "Blackjack", which is when their first two cards sum to 21. */
-char checkIfBlackjack(int * userCards) {
-	if (userCards[0] == ACE && (userCards[1] == TEN || userCards[1] == JOKER || userCards[1] == QUEEN || userCards[1] == KING))
+char checkIfBlackjack(card * userCards) {
+	if (userCards[0].rank == ACE && (userCards[1].rank == TEN || userCards[1].rank == JOKER || userCards[1].rank == QUEEN || userCards[1].rank == KING))
 		return 'b';
-	if (userCards[1] == ACE && (userCards[0] == TEN || userCards[0] == JOKER || userCards[0] == QUEEN || userCards[0] == KING))
+	if (userCards[1].rank == ACE && (userCards[0].rank == TEN || userCards[0].rank == JOKER || userCards[0].rank == QUEEN || userCards[0].rank == KING))
 		return 'b';
 	return 'n';
 }
 
 /* Handles payouts and messaging when a player recieves a Blackjack. */
-void alterIfBlackjack(int * userCards, int * dealerCards, char userBlackjack, char dealerBlackjack, bool * takeInsurance, float insurance, float * bank, float bet) {
+void alterIfBlackjack(card * userCards, card * dealerCards, char userBlackjack, char dealerBlackjack, bool * takeInsurance, float insurance, float * bank, float bet) {
 	if (userBlackjack == 'b' && dealerBlackjack == 'b')
 		printf("It's a highly unlikely tie. Two blackjacks!\n");
 	else if (userBlackjack == 'b' && dealerBlackjack == 'n') {
@@ -377,10 +398,10 @@ void alterIfBlackjack(int * userCards, int * dealerCards, char userBlackjack, ch
 
 /* Gives the user the option of taking out insurance if the dealer's face card is an Ace.
    Called in the function, alterIfBlackjack. */
-void askForInsurance(float * insurance, int bet, bool * takeInsurance, int * dealerCards) {
+void askForInsurance(float * insurance, int bet, bool * takeInsurance, card * dealerCards) {
 	*takeInsurance = 0;
 	char userInput;
-	printf("Given that the dealer's second card is an %s, would you like to take insurance? Enter 'y' for yes, or any letter for no: ", enumToString(dealerCards[1]));
+	printf("Given that the dealer's second card is an %s, would you like to take insurance? Enter 'y' for yes, or any letter for no: ", rankEnumToString(dealerCards[1].rank));
 	getAlphaInput(&userInput);
 	if (userInput == 'y')
 		*insurance = bet * 0.5;
@@ -397,10 +418,10 @@ void getMaxSplitTotal(int * firstHandTotal, int secondHandTotal) {
 }
 
 /* Initializes each element in the user's and dealer's hand to zero. Used at the start of a new round. */
-void setToZero(int * userCards, int * dealerCards) {
+void setToZero(card * userCards, card * dealerCards) {
 	for (int j = 0; j < HAND; j++) {
-		userCards[j] = 0;
-		dealerCards[j] = 0;
+		userCards[j].rank = 0;
+		dealerCards[j].rank = 0;
 	}
 }
 
